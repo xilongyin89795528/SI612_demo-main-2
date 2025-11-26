@@ -1,0 +1,106 @@
+import { create } from 'zustand'
+import { Score, Marker, PracticeSettings, PracticeMode, ScoreNoteData } from '../types'
+import { getDefaultScores, getTwinkleTwinkleNoteData } from '../utils/defaultScores'
+
+interface AppState {
+  scores: Score[]
+  currentScore: Score | null
+  markers: Marker[]
+  practiceSettings: PracticeSettings
+  currentPage: number
+  totalPages: number
+  isPlaying: boolean
+  scoreNoteData: ScoreNoteData | null // Current score's note data
+  currentNoteIndex: number // Index of note currently expected to be played
+  sectionComplete: boolean // Whether the entire section is complete
+  
+  // Actions
+  setScores: (scores: Score[]) => void
+  addScore: (score: Score) => void
+  setCurrentScore: (score: Score | null) => void
+  addMarker: (marker: Marker) => void
+  removeMarker: (id: string) => void
+  setPracticeMode: (mode: PracticeMode) => void
+  setPracticeSettings: (settings: Partial<PracticeSettings>) => void
+  setCurrentPage: (page: number) => void
+  setTotalPages: (pages: number) => void
+  setIsPlaying: (playing: boolean) => void
+  setLoopRange: (start?: number, end?: number) => void
+  initializeDefaultScores: () => void
+  setScoreNoteData: (data: ScoreNoteData | null) => void
+  setCurrentNoteIndex: (index: number) => void
+  resetCurrentNoteIndex: () => void
+  setSectionComplete: (complete: boolean) => void
+}
+
+// Check if default scores have been initialized
+let defaultScoresInitialized = false
+
+export const useStore = create<AppState>((set, get) => ({
+  scores: [],
+  currentScore: null,
+  markers: [],
+  practiceSettings: {
+    mode: 'practice',
+    autoTurnPage: false,
+    pageTurnDelay: 3,
+    voiceControlEnabled: false,
+  },
+  currentPage: 1,
+  totalPages: 1,
+  isPlaying: false,
+  scoreNoteData: null,
+  currentNoteIndex: 0,
+  sectionComplete: false,
+
+  setScores: (scores) => set({ scores }),
+  addScore: (score) => set((state) => ({ scores: [...state.scores, score] })),
+  setCurrentScore: (score) => {
+    set({ currentScore: score, sectionComplete: false })
+    // If it's Twinkle Twinkle score, load note data
+    if (score?.id === 'default-5') {
+      set({ scoreNoteData: getTwinkleTwinkleNoteData(), currentNoteIndex: 0 })
+    } else {
+      set({ scoreNoteData: null, currentNoteIndex: 0 })
+    }
+  },
+  addMarker: (marker) => set((state) => ({ markers: [...state.markers, marker] })),
+  removeMarker: (id) => set((state) => ({ 
+    markers: state.markers.filter(m => m.id !== id) 
+  })),
+  setPracticeMode: (mode) => set((state) => ({
+    practiceSettings: { ...state.practiceSettings, mode }
+  })),
+  setPracticeSettings: (settings) => set((state) => ({
+    practiceSettings: { ...state.practiceSettings, ...settings }
+  })),
+  setCurrentPage: (page) => set({ currentPage: page }),
+  setTotalPages: (pages) => set({ totalPages: pages }),
+  setIsPlaying: (playing) => set({ isPlaying: playing }),
+  setLoopRange: (start, end) => set((state) => ({
+    practiceSettings: {
+      ...state.practiceSettings,
+      loopStart: start,
+      loopEnd: end,
+    }
+  })),
+  initializeDefaultScores: () => {
+    if (!defaultScoresInitialized) {
+      const defaultScores = getDefaultScores()
+      const currentScores = get().scores
+      // Only add scores that don't exist
+      const newScores = defaultScores.filter(
+        ds => !currentScores.some(cs => cs.id === ds.id)
+      )
+      if (newScores.length > 0) {
+        set((state) => ({ scores: [...state.scores, ...newScores] }))
+      }
+      defaultScoresInitialized = true
+    }
+  },
+  setScoreNoteData: (data) => set({ scoreNoteData: data }),
+  setCurrentNoteIndex: (index) => set({ currentNoteIndex: index }),
+  resetCurrentNoteIndex: () => set({ currentNoteIndex: 0 }),
+  setSectionComplete: (complete) => set({ sectionComplete: complete }),
+}))
+
