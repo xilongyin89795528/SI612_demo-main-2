@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Score, Marker, PracticeSettings, PracticeMode, ScoreNoteData } from '../types'
+import { Score, Marker, PracticeSettings, PracticeMode, ScoreNoteData, PracticeRecord } from '../types'
 import { getDefaultScores, getTwinkleTwinkleNoteData } from '../utils/defaultScores'
 
 interface AppState {
@@ -13,6 +13,7 @@ interface AppState {
   scoreNoteData: ScoreNoteData | null // Current score's note data
   currentNoteIndex: number // Index of note currently expected to be played
   sectionComplete: boolean // Whether the entire section is complete
+  practiceRecords: PracticeRecord[] // All practice records
   
   // Actions
   setScores: (scores: Score[]) => void
@@ -31,6 +32,11 @@ interface AppState {
   setCurrentNoteIndex: (index: number) => void
   resetCurrentNoteIndex: () => void
   setSectionComplete: (complete: boolean) => void
+  addPracticeRecord: (record: PracticeRecord) => void
+  removePracticeRecord: (id: string) => void
+  clearAllMarkers: () => void
+  resetPracticeState: () => void
+  saveCurrentPracticeAndReset: () => void
 }
 
 // Check if default scores have been initialized
@@ -52,6 +58,7 @@ export const useStore = create<AppState>((set, get) => ({
   scoreNoteData: null,
   currentNoteIndex: 0,
   sectionComplete: false,
+  practiceRecords: [],
 
   setScores: (scores) => set({ scores }),
   addScore: (score) => set((state) => ({ scores: [...state.scores, score] })),
@@ -102,5 +109,56 @@ export const useStore = create<AppState>((set, get) => ({
   setCurrentNoteIndex: (index) => set({ currentNoteIndex: index }),
   resetCurrentNoteIndex: () => set({ currentNoteIndex: 0 }),
   setSectionComplete: (complete) => set({ sectionComplete: complete }),
+  addPracticeRecord: (record) => set((state) => {
+    // Keep only the latest 50 records
+    const newRecords = [record, ...state.practiceRecords].slice(0, 50)
+    return { practiceRecords: newRecords }
+  }),
+  removePracticeRecord: (id) => set((state) => ({
+    practiceRecords: state.practiceRecords.filter(r => r.id !== id)
+  })),
+  clearAllMarkers: () => set({ markers: [] }),
+  resetPracticeState: () => set((state) => ({
+    isPlaying: false,
+    currentNoteIndex: 0,
+    sectionComplete: false,
+    practiceSettings: {
+      ...state.practiceSettings,
+      loopStart: undefined,
+      loopEnd: undefined,
+    },
+  })),
+  saveCurrentPracticeAndReset: () => {
+    const state = get()
+    const { currentScore, markers, practiceSettings, currentPage, totalPages } = state
+    
+    if (currentScore && markers.length > 0) {
+      // Calculate marker statistics
+      const autoDetectedMarkers = markers.filter(m => m.id.startsWith('auto-')).length
+      const manualMarkers = markers.length - autoDetectedMarkers
+      
+      // Create practice record
+      const record: PracticeRecord = {
+        id: `record-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        scoreId: currentScore.id,
+        scoreName: currentScore.name,
+        timestamp: new Date(),
+        markers: [...markers], // Deep copy markers
+        totalMarkers: markers.length,
+        autoDetectedMarkers,
+        manualMarkers,
+        practiceMode: practiceSettings.mode,
+        currentPage,
+        totalPages,
+      }
+      
+      // Save record
+      state.addPracticeRecord(record)
+    }
+    
+    // Clear markers and reset state
+    state.clearAllMarkers()
+    state.resetPracticeState()
+  },
 }))
 

@@ -45,5 +45,20 @@ export interface PracticeSettings {
   voiceControlEnabled: boolean
 }
 
+// Practice record interface
+export interface PracticeRecord {
+  id: string
+  scoreId: string
+  scoreName: string
+  timestamp: Date
+  markers: Marker[] // All markers at the time of recording
+  totalMarkers: number
+  autoDetectedMarkers: number
+  manualMarkers: number
+  practiceMode: PracticeMode
+  currentPage: number
+  totalPages: number
+}
+
 
 

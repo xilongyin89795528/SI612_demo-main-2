@@ -1,8 +1,10 @@
-import { Home, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Play, Pause, RotateCcw, Settings, Mic } from 'lucide-react'
+import { useState } from 'react'
+import { Home, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Play, Pause, RotateCcw, Settings, Mic, RefreshCw, History } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../../store/useStore'
 import ModeToggle from './ModeToggle'
 import VoiceControl from './VoiceControl'
+import PracticeRecordModal from '../PracticeRecord/PracticeRecordModal'
 
 interface ToolbarProps {
   isListening?: boolean
@@ -18,6 +20,7 @@ export default function Toolbar({
   totalNotes 
 }: ToolbarProps = {}) {
   const navigate = useNavigate()
+  const [showRecordModal, setShowRecordModal] = useState(false)
   const {
     currentPage,
     totalPages,
@@ -26,6 +29,9 @@ export default function Toolbar({
     setIsPlaying,
     practiceSettings,
     setPracticeSettings,
+    markers,
+    saveCurrentPracticeAndReset,
+    practiceRecords,
   } = useStore()
 
   const handlePreviousPage = () => {
@@ -42,6 +48,17 @@ export default function Toolbar({
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying)
+  }
+
+  const handleRestart = () => {
+    const hasMarkers = markers.length > 0
+    const message = hasMarkers
+      ? '确定要重新开始吗？当前练习记录将被保存到演奏记录中。'
+      : '确定要重新开始吗？将重置所有练习状态。'
+    
+    if (window.confirm(message)) {
+      saveCurrentPracticeAndReset()
+    }
   }
 
   return (
@@ -107,6 +124,21 @@ export default function Toolbar({
             </button>
           )}
           
+          {practiceSettings.mode === 'practice' && (
+            <button
+              onClick={handleRestart}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                markers.length > 0
+                  ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              title={markers.length > 0 ? '重新开始（保存当前记录并清空标记）' : '重新开始（重置练习状态）'}
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span className="text-sm">重新开始</span>
+            </button>
+          )}
+          
           {practiceSettings.mode === 'practice' && practiceSettings.loopStart && (
             <button
               className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -120,6 +152,19 @@ export default function Toolbar({
 
         {/* Right: Settings and voice control */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowRecordModal(true)}
+            className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            title="查看演奏记录"
+          >
+            <History className="w-5 h-5" />
+            {practiceRecords.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary-600 text-white text-xs rounded-full flex items-center justify-center">
+                {practiceRecords.length > 99 ? '99+' : practiceRecords.length}
+              </span>
+            )}
+          </button>
+          
           <VoiceControl 
             isListening={isListening} 
             error={error}
@@ -140,6 +185,11 @@ export default function Toolbar({
           </button>
         </div>
       </div>
+      
+      <PracticeRecordModal 
+        isOpen={showRecordModal} 
+        onClose={() => setShowRecordModal(false)} 
+      />
     </div>
   )
 }
