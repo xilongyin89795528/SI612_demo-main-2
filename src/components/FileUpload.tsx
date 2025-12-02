@@ -19,7 +19,7 @@ export default function FileUpload({ onFileSelect, onClose }: FileUploadProps) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 relative">
+      <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 relative border-4 border-orange-200 shadow-2xl">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -28,13 +28,13 @@ export default function FileUpload({ onFileSelect, onClose }: FileUploadProps) {
         </button>
         
         <div className="text-center">
-          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <UploadIcon className="w-8 h-8 text-primary-600" />
+          <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+            <UploadIcon className="w-10 h-10 text-white" />
           </div>
-          <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+          <h3 className="text-3xl font-bold text-gray-900 mb-3">
             Upload Score
           </h3>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-8 text-lg">
             Supports PDF and image formats (JPG, PNG)
           </p>
           
@@ -48,7 +48,7 @@ export default function FileUpload({ onFileSelect, onClose }: FileUploadProps) {
           
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="px-8 py-4 bg-gradient-to-r from-orange-400 to-yellow-500 text-white rounded-xl hover:from-orange-500 hover:to-yellow-600 transition-all shadow-lg hover:shadow-xl font-semibold text-lg"
           >
             Select File
           </button>

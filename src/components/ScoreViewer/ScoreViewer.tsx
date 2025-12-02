@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { useStore } from '../../store/useStore'
 import { Score } from '../../types'
@@ -22,6 +22,13 @@ export default function ScoreViewer({ score, onTotalPagesChange }: ScoreViewerPr
   const [isSelecting, setIsSelecting] = useState(false)
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null)
   const [selectionEnd, setSelectionEnd] = useState<{ x: number; y: number } | null>(null)
+  const [displayPage, setDisplayPage] = useState(currentPage)
+  const [isFading, setIsFading] = useState(false)
+
+  // Sync displayPage with currentPage on mount or when score changes
+  useEffect(() => {
+    setDisplayPage(currentPage)
+  }, [score.id])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages)
@@ -64,10 +71,27 @@ export default function ScoreViewer({ score, onTotalPagesChange }: ScoreViewerPr
     }
   }, [])
 
+  // Handle page transition with smooth fade effect
+  useEffect(() => {
+    if (currentPage !== displayPage) {
+      // Start fade out
+      setIsFading(true)
+      // After fade out completes, switch page and fade in
+      const timer = setTimeout(() => {
+        setDisplayPage(currentPage)
+        // Small delay before fade in to ensure content is ready
+        setTimeout(() => {
+          setIsFading(false)
+        }, 50)
+      }, 300) // Match CSS transition duration
+      return () => clearTimeout(timer)
+    }
+  }, [currentPage, displayPage])
+
   if (score.type === 'image') {
     // Support multi-page images
     const imageUrl = score.urls && score.urls.length > 0 
-      ? score.urls[currentPage - 1] || score.urls[0]
+      ? score.urls[displayPage - 1] || score.urls[0]
       : score.url
     
     // Set total pages
@@ -79,23 +103,21 @@ export default function ScoreViewer({ score, onTotalPagesChange }: ScoreViewerPr
     
     return (
       <div className="score-viewer-container">
-        <div className="flex justify-center items-center min-h-full p-8">
-          <div
-            className="relative cursor-crosshair"
-            onClick={handlePageClick}
-            onWheel={handleWheel}
-            style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
-          >
-            <img
-              src={imageUrl}
-              alt={`${score.name} - Page ${currentPage}`}
-              className="max-w-full h-auto shadow-2xl"
-            />
-            <MarkerOverlay
-              page={currentPage}
-              markers={markers.filter(m => m.page === currentPage)}
-            />
-          </div>
+        <div
+          className={`relative cursor-crosshair transition-opacity duration-300 ${isFading ? 'opacity-0' : 'opacity-100'}`}
+          onClick={handlePageClick}
+          onWheel={handleWheel}
+          style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
+        >
+          <img
+            src={imageUrl}
+            alt={`${score.name} - Page ${displayPage}`}
+            className="max-w-full h-auto shadow-2xl"
+          />
+          <MarkerOverlay
+            page={displayPage}
+            markers={markers.filter(m => m.page === displayPage)}
+          />
         </div>
       </div>
     )
@@ -103,35 +125,33 @@ export default function ScoreViewer({ score, onTotalPagesChange }: ScoreViewerPr
 
   return (
     <div className="score-viewer-container">
-      <div className="flex flex-col items-center min-h-full p-8">
-        <Document
-          file={score.url}
-          onLoadSuccess={onDocumentLoadSuccess}
-          loading={
-            <div className="flex items-center justify-center h-screen">
-              <div className="text-gray-600">Loading...</div>
-            </div>
-          }
-        >
-          <div
-            className="relative cursor-crosshair"
-            onClick={handlePageClick}
-            onWheel={handleWheel}
-            style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
-          >
-            <Page
-              pageNumber={currentPage}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-              scale={scale}
-            />
-            <MarkerOverlay
-              page={currentPage}
-              markers={markers.filter(m => m.page === currentPage)}
-            />
+      <Document
+        file={score.url}
+        onLoadSuccess={onDocumentLoadSuccess}
+        loading={
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-gray-600">Loading...</div>
           </div>
-        </Document>
-      </div>
+        }
+      >
+        <div
+          className={`relative cursor-crosshair transition-opacity duration-300 ${isFading ? 'opacity-0' : 'opacity-100'}`}
+          onClick={handlePageClick}
+          onWheel={handleWheel}
+          style={{ transform: `scale(${scale})`, transformOrigin: 'center' }}
+        >
+          <Page
+            pageNumber={displayPage}
+            renderTextLayer={true}
+            renderAnnotationLayer={true}
+            scale={scale}
+          />
+          <MarkerOverlay
+            page={displayPage}
+            markers={markers.filter(m => m.page === displayPage)}
+          />
+        </div>
+      </Document>
     </div>
   )
 }

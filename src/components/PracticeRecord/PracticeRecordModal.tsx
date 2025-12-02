@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { X, Clock, Music, AlertCircle, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, Clock, AlertCircle, Trash2, ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { useStore } from '../../store/useStore'
 import { PracticeRecord } from '../../types'
+import logoImage from '../../assets/11.png'
 
 export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { practiceRecords, removePracticeRecord } = useStore()
+  const navigate = useNavigate()
+  const { practiceRecords, removePracticeRecord, restorePracticeRecord, scores } = useStore()
   const [expandedRecords, setExpandedRecords] = useState<Set<string>>(new Set())
 
   if (!isOpen) {
@@ -25,7 +28,7 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
 
   const formatDate = (date: Date) => {
     const d = new Date(date)
-    return d.toLocaleString('zh-CN', {
+    return d.toLocaleString('en-US', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -34,18 +37,41 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
     })
   }
 
+  const handleRestore = (record: PracticeRecord) => {
+    // Check if score exists
+    const score = scores.find(s => s.id === record.scoreId)
+    if (!score) {
+      alert('Cannot restore: The corresponding score does not exist')
+      return
+    }
+
+    // Restore the record
+    const success = restorePracticeRecord(record.id)
+    if (success) {
+      // Close modal and navigate to viewer
+      onClose()
+      navigate('/viewer')
+    } else {
+      alert('Restore failed: Record or score does not exist')
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] mx-4 flex flex-col shadow-2xl">
+      <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] mx-4 flex flex-col shadow-2xl border-4 border-orange-200">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-              <Music className="w-5 h-5 text-primary-600" />
+            <div className="flex items-center justify-center">
+              <img 
+                src={logoImage} 
+                alt="FLOWMATE Logo" 
+                className="w-12 h-12 object-contain"
+              />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">演奏记录</h2>
-              <p className="text-sm text-gray-500 mt-1">共 {practiceRecords.length} 条记录</p>
+              <h2 className="text-2xl font-bold text-gray-900">Practice Records</h2>
+              <p className="text-sm text-gray-500 mt-1">{practiceRecords.length} record{practiceRecords.length !== 1 ? 's' : ''}</p>
             </div>
           </div>
           <button
@@ -61,8 +87,8 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
           {practiceRecords.length === 0 ? (
             <div className="text-center py-12">
               <Clock className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-500 text-lg">暂无演奏记录</p>
-              <p className="text-gray-400 text-sm mt-2">点击"重新开始"按钮保存练习记录</p>
+              <p className="text-gray-500 text-lg">No practice records</p>
+              <p className="text-gray-400 text-sm mt-2">Click the "Restart" button to save practice records</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -88,7 +114,7 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
                                 : 'bg-purple-100 text-purple-700'
                             }`}
                           >
-                            {record.practiceMode === 'practice' ? '练习模式' : '表演模式'}
+                            {record.practiceMode === 'practice' ? 'Practice Mode' : 'Performance Mode'}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -98,16 +124,24 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
                           </div>
                           <div className="flex items-center gap-1">
                             <AlertCircle className="w-4 h-4" />
-                            <span>错误标记: {record.totalMarkers} 个</span>
+                            <span>Error Markers: {record.totalMarkers}</span>
                           </div>
-                          <span>页面: {record.currentPage}/{record.totalPages}</span>
+                          <span>Page: {record.currentPage}/{record.totalPages}</span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => handleRestore(record)}
+                          className="px-4 py-2 text-sm bg-gradient-to-r from-orange-400 to-yellow-500 text-white rounded-xl hover:from-orange-500 hover:to-yellow-600 transition-all shadow-md hover:shadow-lg font-semibold flex items-center gap-2"
+                          title="Restore record (Go back to score and show error markers)"
+                        >
+                          <RotateCcw className="w-4 h-4" />
+                          Restore
+                        </button>
+                        <button
                           onClick={() => toggleExpand(record.id)}
                           className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                          title={isExpanded ? '收起详情' : '展开详情'}
+                          title={isExpanded ? 'Collapse Details' : 'Expand Details'}
                         >
                           {isExpanded ? (
                             <ChevronUp className="w-5 h-5" />
@@ -117,12 +151,12 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
                         </button>
                         <button
                           onClick={() => {
-                            if (window.confirm('确定要删除这条记录吗？')) {
+                            if (window.confirm('Are you sure you want to delete this record?')) {
                               removePracticeRecord(record.id)
                             }
                           }}
                           className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                          title="删除记录"
+                          title="Delete Record"
                         >
                           <Trash2 className="w-5 h-5" />
                         </button>
@@ -134,21 +168,21 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
                       <div className="mt-4 pt-4 border-t border-gray-200">
                         <div className="grid grid-cols-2 gap-4 mb-4">
                           <div className="bg-gray-50 rounded-lg p-3">
-                            <p className="text-xs text-gray-500 mb-1">总标记数</p>
+                            <p className="text-xs text-gray-500 mb-1">Total Markers</p>
                             <p className="text-2xl font-bold text-gray-900">{record.totalMarkers}</p>
                           </div>
                           <div className="bg-orange-50 rounded-lg p-3">
-                            <p className="text-xs text-gray-500 mb-1">自动检测</p>
+                            <p className="text-xs text-gray-500 mb-1">Auto Detected</p>
                             <p className="text-2xl font-bold text-orange-700">{record.autoDetectedMarkers}</p>
                           </div>
                           <div className="bg-yellow-50 rounded-lg p-3">
-                            <p className="text-xs text-gray-500 mb-1">手动标记</p>
+                            <p className="text-xs text-gray-500 mb-1">Manual Markers</p>
                             <p className="text-2xl font-bold text-yellow-700">{record.manualMarkers}</p>
                           </div>
                           <div className="bg-blue-50 rounded-lg p-3">
-                            <p className="text-xs text-gray-500 mb-1">练习模式</p>
+                            <p className="text-xs text-gray-500 mb-1">Practice Mode</p>
                             <p className="text-lg font-semibold text-blue-700">
-                              {record.practiceMode === 'practice' ? '练习模式' : '表演模式'}
+                              {record.practiceMode === 'practice' ? 'Practice Mode' : 'Performance Mode'}
                             </p>
                           </div>
                         </div>
@@ -156,7 +190,7 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
                         {/* Markers List */}
                         {record.markers.length > 0 && (
                           <div>
-                            <p className="text-sm font-semibold text-gray-700 mb-2">标记详情：</p>
+                            <p className="text-sm font-semibold text-gray-700 mb-2">Marker Details:</p>
                             <div className="max-h-48 overflow-y-auto space-y-2">
                               {record.markers.map((marker) => {
                                 const isAuto = marker.id.startsWith('auto-')
@@ -175,14 +209,14 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
                                       }`}
                                     />
                                     <span className="text-gray-700">
-                                      {marker.note || '标记位置'}
+                                      {marker.note || 'Marker Position'}
                                     </span>
                                     <span className="text-gray-500 text-xs">
-                                      页面 {marker.page}
+                                      Page {marker.page}
                                     </span>
                                     {isAuto && (
                                       <span className="text-xs px-1.5 py-0.5 bg-orange-200 text-orange-700 rounded ml-auto">
-                                        自动
+                                        Auto
                                       </span>
                                     )}
                                   </div>
@@ -204,9 +238,9 @@ export default function PracticeRecordModal({ isOpen, onClose }: { isOpen: boole
         <div className="border-t border-gray-200 p-4 flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+            className="px-8 py-3 bg-gradient-to-r from-orange-400 to-yellow-500 text-white rounded-xl hover:from-orange-500 hover:to-yellow-600 transition-all shadow-lg hover:shadow-xl font-semibold"
           >
-            关闭
+            Close
           </button>
         </div>
       </div>

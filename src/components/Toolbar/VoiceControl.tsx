@@ -28,8 +28,8 @@ export default function VoiceControl({
   } = useStore()
   const [isListening, setIsListening] = useState(false)
 
-  // Check if it's the Twinkle Twinkle score
-  const isTwinkleScore = currentScore?.id === 'default-5'
+  // Check if it's the Twinkle Twinkle score (default-5 or default-6)
+  const isTwinkleScore = currentScore?.id === 'default-5' || currentScore?.id === 'default-6'
   
   // Use external isListening (if Twinkle score) or internal state
   const actualIsListening = isTwinkleScore && isPlaying 
@@ -91,7 +91,7 @@ export default function VoiceControl({
           practiceSettings.voiceControlEnabled
             ? isTwinkleScore && actualIsListening
               ? 'bg-red-100 text-red-600'
-              : 'bg-primary-100 text-primary-600'
+              : 'bg-orange-100 text-orange-600'
             : 'text-gray-600 hover:bg-gray-100'
         }`}
         title={getTitle()}

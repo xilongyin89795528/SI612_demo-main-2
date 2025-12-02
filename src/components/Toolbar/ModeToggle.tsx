@@ -9,12 +9,12 @@ export default function ModeToggle() {
   }
 
   return (
-    <div className="flex items-center bg-gray-100 rounded-lg p-1">
+    <div className="flex items-center bg-gray-100 rounded-xl p-1">
       <button
         onClick={() => handleModeChange('practice')}
-        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+        className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
           practiceSettings.mode === 'practice'
-            ? 'bg-white text-primary-600 shadow-sm'
+            ? 'bg-gradient-to-r from-orange-400 to-yellow-500 text-white shadow-md'
             : 'text-gray-600 hover:text-gray-900'
         }`}
       >
@@ -22,9 +22,9 @@ export default function ModeToggle() {
       </button>
       <button
         onClick={() => handleModeChange('performance')}
-        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+        className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all ${
           practiceSettings.mode === 'performance'
-            ? 'bg-white text-primary-600 shadow-sm'
+            ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
             : 'text-gray-600 hover:text-gray-900'
         }`}
       >

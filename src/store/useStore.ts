@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { Score, Marker, PracticeSettings, PracticeMode, ScoreNoteData, PracticeRecord } from '../types'
-import { getDefaultScores, getTwinkleTwinkleNoteData } from '../utils/defaultScores'
+import { getDefaultScores, getTwinkleTwinkleNoteData, getTwinkleTwinkleNoteDataCopy } from '../utils/defaultScores'
 
 interface AppState {
   scores: Score[]
@@ -21,6 +21,7 @@ interface AppState {
   setCurrentScore: (score: Score | null) => void
   addMarker: (marker: Marker) => void
   removeMarker: (id: string) => void
+  setMarkers: (markers: Marker[]) => void
   setPracticeMode: (mode: PracticeMode) => void
   setPracticeSettings: (settings: Partial<PracticeSettings>) => void
   setCurrentPage: (page: number) => void
@@ -34,6 +35,7 @@ interface AppState {
   setSectionComplete: (complete: boolean) => void
   addPracticeRecord: (record: PracticeRecord) => void
   removePracticeRecord: (id: string) => void
+  restorePracticeRecord: (recordId: string) => boolean
   clearAllMarkers: () => void
   resetPracticeState: () => void
   saveCurrentPracticeAndReset: () => void
@@ -67,6 +69,8 @@ export const useStore = create<AppState>((set, get) => ({
     // If it's Twinkle Twinkle score, load note data
     if (score?.id === 'default-5') {
       set({ scoreNoteData: getTwinkleTwinkleNoteData(), currentNoteIndex: 0 })
+    } else if (score?.id === 'default-6') {
+      set({ scoreNoteData: getTwinkleTwinkleNoteDataCopy(), currentNoteIndex: 0 })
     } else {
       set({ scoreNoteData: null, currentNoteIndex: 0 })
     }
@@ -75,6 +79,7 @@ export const useStore = create<AppState>((set, get) => ({
   removeMarker: (id) => set((state) => ({ 
     markers: state.markers.filter(m => m.id !== id) 
   })),
+  setMarkers: (markers) => set({ markers }),
   setPracticeMode: (mode) => set((state) => ({
     practiceSettings: { ...state.practiceSettings, mode }
   })),
@@ -117,6 +122,40 @@ export const useStore = create<AppState>((set, get) => ({
   removePracticeRecord: (id) => set((state) => ({
     practiceRecords: state.practiceRecords.filter(r => r.id !== id)
   })),
+  restorePracticeRecord: (recordId) => {
+    const state = get()
+    const record = state.practiceRecords.find(r => r.id === recordId)
+    if (!record) {
+      return false
+    }
+    
+    // Find the score
+    const score = state.scores.find(s => s.id === record.scoreId)
+    if (!score) {
+      return false
+    }
+    
+    // Filter out correct markers, only keep error and manual markers
+    const errorMarkers = record.markers.filter(m => m.type !== 'correct')
+    
+    // Set the score
+    state.setCurrentScore(score)
+    
+    // Set markers (only error markers)
+    state.setMarkers([...errorMarkers])
+    
+    // Set page - always restore to page 1
+    state.setCurrentPage(1)
+    state.setTotalPages(record.totalPages)
+    
+    // Set practice mode
+    state.setPracticeMode(record.practiceMode)
+    
+    // Reset practice state
+    state.resetPracticeState()
+    
+    return true
+  },
   clearAllMarkers: () => set({ markers: [] }),
   resetPracticeState: () => set((state) => ({
     isPlaying: false,
@@ -133,9 +172,12 @@ export const useStore = create<AppState>((set, get) => ({
     const { currentScore, markers, practiceSettings, currentPage, totalPages } = state
     
     if (currentScore && markers.length > 0) {
-      // Calculate marker statistics
-      const autoDetectedMarkers = markers.filter(m => m.id.startsWith('auto-')).length
-      const manualMarkers = markers.length - autoDetectedMarkers
+      // Filter out correct markers - only count error markers
+      const errorMarkers = markers.filter(m => m.type !== 'correct')
+      
+      // Calculate marker statistics (only for error markers)
+      const autoDetectedMarkers = errorMarkers.filter(m => m.id.startsWith('auto-')).length
+      const manualMarkers = errorMarkers.length - autoDetectedMarkers
       
       // Create practice record
       const record: PracticeRecord = {
@@ -143,8 +185,8 @@ export const useStore = create<AppState>((set, get) => ({
         scoreId: currentScore.id,
         scoreName: currentScore.name,
         timestamp: new Date(),
-        markers: [...markers], // Deep copy markers
-        totalMarkers: markers.length,
+        markers: [...markers], // Deep copy all markers (including correct ones for restore)
+        totalMarkers: errorMarkers.length, // Only count error markers
         autoDetectedMarkers,
         manualMarkers,
         practiceMode: practiceSettings.mode,

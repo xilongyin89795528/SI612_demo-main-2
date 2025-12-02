@@ -6,13 +6,13 @@ export default function MarkerPanel() {
   const { markers, removeMarker, currentPage } = useStore()
   const [isOpen, setIsOpen] = useState(true)
   
-  const currentPageMarkers = markers.filter(m => m.page === currentPage)
+  const currentPageMarkers = markers.filter(m => m.page === currentPage && m.type !== 'correct')
 
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed right-4 top-24 bg-primary-600 text-white p-3 rounded-lg shadow-lg hover:bg-primary-700 transition-colors"
+        className="fixed right-4 top-24 bg-gradient-to-r from-orange-400 to-yellow-500 text-white p-3 rounded-xl shadow-lg hover:from-orange-500 hover:to-yellow-600 transition-all"
         title="Show Markers"
       >
         <AlertCircle className="w-5 h-5" />
@@ -26,8 +26,8 @@ export default function MarkerPanel() {
   }
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col shadow-lg">
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+    <div className="w-80 bg-white border-l-2 border-gray-200 flex flex-col shadow-xl">
+      <div className="flex items-center justify-between p-5 border-b-2 border-gray-200 bg-gradient-to-r from-orange-50 to-yellow-50">
         <h3 className="text-lg font-semibold text-gray-900">
           Markers ({currentPageMarkers.length})
         </h3>

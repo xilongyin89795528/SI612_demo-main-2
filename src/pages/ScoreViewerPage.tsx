@@ -7,11 +7,13 @@ import MarkerPanel from '../components/Marker/MarkerPanel'
 import FeedbackModal from '../components/Feedback/FeedbackModal'
 import { usePracticeMode } from '../hooks/usePracticeMode'
 import { useNoteComparison } from '../hooks/useNoteComparison'
+import { useAutoMarking } from '../hooks/useAutoMarking'
 
 export default function ScoreViewerPage() {
   const navigate = useNavigate()
   const { currentScore, totalPages, setTotalPages } = useStore()
   usePracticeMode()
+  useAutoMarking() // Auto-marking for default-6
   
   // Real-time note comparison (only enabled for Twinkle Twinkle score)
   const noteComparison = useNoteComparison()
@@ -27,7 +29,7 @@ export default function ScoreViewerPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-blue-50 via-yellow-50 to-orange-50">
       <Toolbar 
         isListening={noteComparison.isListening}
         error={noteComparison.error}
@@ -35,7 +37,7 @@ export default function ScoreViewerPage() {
         totalNotes={noteComparison.totalNotes}
       />
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100%' }}>
           <ScoreViewer score={currentScore} onTotalPagesChange={setTotalPages} />
         </div>
         <MarkerPanel />
